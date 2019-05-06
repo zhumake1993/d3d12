@@ -1,4 +1,6 @@
 ﻿  D3DApp.cpp
+  d3dUtil.cpp
+  GameTimer.cpp
   InitDirect3DApp.cpp
   TheMain.cpp
   正在生成代码...

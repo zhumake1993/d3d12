@@ -8,8 +8,6 @@ using namespace DirectX;
 LRESULT CALLBACK
 MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	// Forward hwnd on because we can get messages (e.g., WM_CREATE)
-	// before CreateWindow returns, and thus before mhMainWnd is valid.
 	return D3DApp::GetApp()->MsgProc(hwnd, msg, wParam, lParam);
 }
 
@@ -137,17 +135,15 @@ void D3DApp::OnResize()
 	assert(mSwapChain);
 	assert(mDirectCmdListAlloc);
 
-	// Flush before changing any resources.
+	//flush指令队列
 	FlushCommandQueue();
 
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	// Release the previous resources we will be recreating.
 	for (int i = 0; i < SwapChainBufferCount; ++i)
 		mSwapChainBuffer[i].Reset();
 	mDepthStencilBuffer.Reset();
 
-	// Resize the swap chain.
 	ThrowIfFailed(mSwapChain->ResizeBuffers(
 		SwapChainBufferCount,
 		mClientWidth, mClientHeight,
@@ -156,6 +152,7 @@ void D3DApp::OnResize()
 
 	mCurrBackBuffer = 0;
 
+	//创建渲染目标视图
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
 	for (UINT i = 0; i < SwapChainBufferCount; i++)
 	{
@@ -164,22 +161,15 @@ void D3DApp::OnResize()
 		rtvHeapHandle.Offset(1, mRtvDescriptorSize);
 	}
 
-	// Create the depth/stencil buffer and view.
+	//创建深度模板缓冲和视图
 	D3D12_RESOURCE_DESC depthStencilDesc;
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	depthStencilDesc.Alignment = 0;
 	depthStencilDesc.Width = mClientWidth;
 	depthStencilDesc.Height = mClientHeight;
 	depthStencilDesc.DepthOrArraySize = 1;
-	depthStencilDesc.MipLevels = 1;
-
-	// Correction 11/12/2016: SSAO chapter requires an SRV to the depth buffer to read from 
-	// the depth buffer.  Therefore, because we need to create two views to the same resource:
-	//   1. SRV format: DXGI_FORMAT_R24_UNORM_X8_TYPELESS
-	//   2. DSV Format: DXGI_FORMAT_D24_UNORM_S8_UINT
-	// we need to create the depth buffer resource with a typeless format.  
-	depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-
+	depthStencilDesc.MipLevels = 1;  
+	depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;//创建针对同一资源的不同视图需要指定为typeless
 	depthStencilDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	depthStencilDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -197,7 +187,7 @@ void D3DApp::OnResize()
 		&optClear,
 		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
 
-	// Create descriptor to mip level 0 of entire resource using the format of the resource.
+	//创建描述符（视图）
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
@@ -205,19 +195,19 @@ void D3DApp::OnResize()
 	dsvDesc.Texture2D.MipSlice = 0;
 	md3dDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), &dsvDesc, DepthStencilView());
 
-	// Transition the resource from its initial state to be used as a depth buffer.
+	//改编资源状态
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
-	// Execute the resize commands.
+	//执行resize指令
 	ThrowIfFailed(mCommandList->Close());
 	ID3D12CommandList * cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-	// Wait until resize is complete.
+	//等待GPU完成resize指令
 	FlushCommandQueue();
 
-	// Update the viewport transform to cover the client area.
+	//更新视口
 	mScreenViewport.TopLeftX = 0;
 	mScreenViewport.TopLeftY = 0;
 	mScreenViewport.Width = static_cast<float>(mClientWidth);
@@ -225,6 +215,7 @@ void D3DApp::OnResize()
 	mScreenViewport.MinDepth = 0.0f;
 	mScreenViewport.MaxDepth = 1.0f;
 
+	//更新剪裁矩形
 	mScissorRect = { 0, 0, mClientWidth, mClientHeight };
 }
 
@@ -232,9 +223,9 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
-		// WM_ACTIVATE is sent when the window is activated or deactivated.  
-		// We pause the game when the window is deactivated and unpause it 
-		// when it becomes active.  
+		//WM_ACTIVATE在窗口被激活或者失去激活时发送
+		//窗口失去激活时暂停游戏
+		//窗口激活时解除暂停
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 		{
@@ -248,9 +239,8 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 
-		// WM_SIZE is sent when the user resizes the window.  
 	case WM_SIZE:
-		// Save the new client area dimensions.
+		//保存新客户区域的大小
 		mClientWidth = LOWORD(lParam);
 		mClientHeight = HIWORD(lParam);
 		if (md3dDevice)
@@ -270,16 +260,12 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			else if (wParam == SIZE_RESTORED)
 			{
-
-				// Restoring from minimized state?
 				if (mMinimized)
 				{
 					mAppPaused = false;
 					mMinimized = false;
 					OnResize();
 				}
-
-				// Restoring from maximized state?
 				else if (mMaximized)
 				{
 					mAppPaused = false;
@@ -288,16 +274,9 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				}
 				else if (mResizing)
 				{
-					// If user is dragging the resize bars, we do not resize 
-					// the buffers here because as the user continuously 
-					// drags the resize bars, a stream of WM_SIZE messages are
-					// sent to the window, and it would be pointless (and slow)
-					// to resize for each WM_SIZE message received from dragging
-					// the resize bars.  So instead, we reset after the user is 
-					// done resizing the window and releases the resize bars, which 
-					// sends a WM_EXITSIZEMOVE message.
+					//什么都不做
 				}
-				else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
+				else //调用api，如SetWindowPos或mSwapChain->SetFullscreenState.
 				{
 					OnResize();
 				}
@@ -305,15 +284,14 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 
-		// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+		// WM_EXITSIZEMOVE ：用户开始改变窗口大小
 	case WM_ENTERSIZEMOVE:
 		mAppPaused = true;
 		mResizing = true;
 		mTimer.Stop();
 		return 0;
 
-		// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-		// Here we reset everything based on the new window dimensions.
+		// WM_EXITSIZEMOVE ：用户结束改变窗口大小
 	case WM_EXITSIZEMOVE:
 		mAppPaused = false;
 		mResizing = false;
@@ -321,18 +299,11 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		OnResize();
 		return 0;
 
-		// WM_DESTROY is sent when the window is being destroyed.
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
 
-		// The WM_MENUCHAR message is sent when a menu is active and the user presses 
-		// a key that does not correspond to any mnemonic or accelerator key. 
-	case WM_MENUCHAR:
-		// Don't beep when we alt-enter.
-		return MAKELRESULT(0, MNC_CLOSE);
-
-		// Catch this message so to prevent the window from becoming too small.
+		//防止屏幕过小
 	case WM_GETMINMAXINFO:
 		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
 		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;

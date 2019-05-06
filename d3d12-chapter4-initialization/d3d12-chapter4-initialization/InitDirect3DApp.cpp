@@ -29,46 +29,44 @@ void InitDirect3DApp::Update(const GameTimer& gt)
 
 void InitDirect3DApp::Draw(const GameTimer& gt)
 {
-	// Reuse the memory associated with command recording.
-	// We can only reset when the associated command lists have finished execution on the GPU.
+	//重置指令分配器以重用相关联的内存
+	//必须在GPU完成所有指令后才能进行该操作
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 
-	// A command list can be reset after it has been added to the command queue via ExecuteCommandList.
-	// Reusing the command list reuses memory.
+	//重置指令列表以重用内存
+	//必须在使用ExecuteCommandList将指令列表添加进指令队列后才能执行该操作
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	// Indicate a state transition on the resource usage.
+	//改变资源的状态
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	// Set the viewport and scissor rect.  This needs to be reset whenever the command list is reset.
+	//设置视口和剪裁矩形。每次重置指令列表后都要设置视口和剪裁矩形
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
-	// Clear the back buffer and depth buffer.
+	//清空后背缓冲和深度模板缓冲
 	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), DirectX::Colors::LightSteelBlue, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	// Specify the buffers we are going to render to.
+	//设置渲染目标
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
-	// Indicate a state transition on the resource usage.
+	//改变资源的状态
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
-	// Done recording commands.
+	//关闭指令列表
 	ThrowIfFailed(mCommandList->Close());
 
-	// Add the command list to the queue for execution.
+	//将指令列表添加进指令队列，供GPU执行
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-	// swap the back and front buffers
+	//交换前后缓冲
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
 
-	// Wait until frame commands are complete.  This waiting is inefficient and is
-	// done for simplicity.  Later we will show how to organize our rendering code
-	// so we do not have to wait per frame.
+	//等待指令完成。比较低效，改进方法见后续样例
 	FlushCommandQueue();
 }

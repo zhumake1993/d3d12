@@ -96,8 +96,8 @@ protected:
 
 	static const int SwapChainBufferCount = 2;
 	int mCurrBackBuffer = 0;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount];
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount]; //渲染目标缓冲
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;//深度模板缓冲
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap;//渲染目标视图描述符堆
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap;//深度模板视图描述符堆
