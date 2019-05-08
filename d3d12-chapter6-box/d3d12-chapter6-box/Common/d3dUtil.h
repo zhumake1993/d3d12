@@ -8,11 +8,13 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 #include <array>
 #include <fstream>
 #include <comdef.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <DirectXCollision.h>
 
 #include "d3dx12.h"
 
@@ -51,28 +53,23 @@ public:
 		const std::string& target);
 };
 
-// Defines a subrange of geometry in a MeshGeometry.  This is for when multiple
-// geometries are stored in one vertex and index buffer.  It provides the offsets
-// and data needed to draw a subset of geometry stores in the vertex and index 
-// buffers so that we can implement the technique described by Figure 6.3.
+// 定义MeshGeometry中几何体的一个子范围
+// 因为多个几何体可能存储在同一个顶点和索引缓冲中
+// 它提供了需要的偏移数据来描述一个几何体的子范围
 struct SubmeshGeometry
 {
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	INT BaseVertexLocation = 0;
 
-	// Bounding box of the geometry defined by this submesh. 
-	// This is used in later chapters of the book.
 	DirectX::BoundingBox Bounds;
 };
 
 struct MeshGeometry
 {
-	// Give it a name so we can look it up by name.
 	std::string Name;
-
-	// System memory copies.  Use Blobs because the vertex/index format can be generic.
-	// It is up to the client to cast appropriately.  
+ 
+	// 使用ID3DBlob，因为顶点/索引数据的格式是未定的
 	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU = nullptr;
 
@@ -82,15 +79,12 @@ struct MeshGeometry
 	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
 
-	// Data about the buffers.
 	UINT VertexByteStride = 0;
 	UINT VertexBufferByteSize = 0;
 	DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
 	UINT IndexBufferByteSize = 0;
 
-	// A MeshGeometry may store multiple geometries in one vertex/index buffer.
-	// Use this container to define the Submesh geometries so we can draw
-	// the Submeshes individually.
+	// 一个MeshGeometry可能在一个顶点/索引缓冲中存储多个几何体
 	std::unordered_map<std::string, SubmeshGeometry> DrawArgs;
 
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
@@ -113,7 +107,7 @@ struct MeshGeometry
 		return ibv;
 	}
 
-	// We can free this memory after we finish upload to the GPU.
+	// 在将数据上载给GPU后可以释放内存资源
 	void DisposeUploaders()
 	{
 		VertexBufferUploader = nullptr;

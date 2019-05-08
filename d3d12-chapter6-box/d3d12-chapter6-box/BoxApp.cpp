@@ -77,7 +77,7 @@ void BoxApp::Draw(const GameTimer& gt)
 
 	//重置指令列表以重用内存
 	//必须在使用ExecuteCommandList将指令列表添加进指令队列后才能执行该操作
-	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), mPSO.Get()));// 注意这里不是nullptr指针！！！
 
 	//改变资源的状态
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -93,6 +93,22 @@ void BoxApp::Draw(const GameTimer& gt)
 
 	//设置渲染目标
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
+
+	// chapter6新增的绘图指令
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
+	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	mCommandList->IASetVertexBuffers(0, 1, &mBoxGeo->VertexBufferView());
+	mCommandList->IASetIndexBuffer(&mBoxGeo->IndexBufferView());
+	mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	mCommandList->SetGraphicsRootDescriptorTable(0, mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+
+	mCommandList->DrawIndexedInstanced(
+		mBoxGeo->DrawArgs["box"].IndexCount,
+		1, 0, 0, 0);
 
 	//改变资源的状态
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -111,6 +127,49 @@ void BoxApp::Draw(const GameTimer& gt)
 
 	//等待指令完成。比较低效，改进方法见后续样例
 	FlushCommandQueue();
+}
+
+void BoxApp::OnMouseDown(WPARAM btnState, int x, int y)
+{
+	mLastMousePos.x = x;
+	mLastMousePos.y = y;
+
+	SetCapture(mhMainWnd);
+}
+
+void BoxApp::OnMouseUp(WPARAM btnState, int x, int y)
+{
+	ReleaseCapture();
+}
+
+void BoxApp::OnMouseMove(WPARAM btnState, int x, int y)
+{
+	if ((btnState & MK_LBUTTON) != 0)
+	{
+		// 一个像素对应0.25度
+		float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
+		float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
+
+		mTheta += dx;
+		mPhi += dy;
+
+		// 限制mPhi的范围
+		mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+	}
+	else if ((btnState & MK_RBUTTON) != 0)
+	{
+		// 一个像素对应0.005的空间单位
+		float dx = 0.005f * static_cast<float>(x - mLastMousePos.x);
+		float dy = 0.005f * static_cast<float>(y - mLastMousePos.y);
+
+		mRadius += dx - dy;
+
+		// 限制radius的范围
+		mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
+	}
+
+	mLastMousePos.x = x;
+	mLastMousePos.y = y;
 }
 
 void BoxApp::BuildDescriptorHeaps()
