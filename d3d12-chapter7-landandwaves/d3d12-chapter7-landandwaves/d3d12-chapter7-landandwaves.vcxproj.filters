@@ -69,7 +69,7 @@
       <Filter>Main</Filter>
     </ClInclude>
     <ClInclude Include="Waves.h">
-      <Filter>Common</Filter>
+      <Filter>Main</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
