@@ -1,0 +1,14 @@
+﻿  D3DApp.cpp
+  d3dUtil.cpp
+  DDSTextureLoader.cpp
+  GameTimer.cpp
+  GeometryGenerator.cpp
+  MathHelper.cpp
+  TheMain.cpp
+  VecAddApp.cpp
+F:\d3d12\d3d12-chapter13-vecadd\d3d12-chapter13-vecadd\VecAddApp.cpp(212): warning C4244: “参数”: 从“int”转换到“float”，可能丢失数据
+F:\d3d12\d3d12-chapter13-vecadd\d3d12-chapter13-vecadd\VecAddApp.cpp(213): warning C4244: “参数”: 从“int”转换到“float”，可能丢失数据
+F:\d3d12\d3d12-chapter13-vecadd\d3d12-chapter13-vecadd\VecAddApp.cpp(215): warning C4244: “参数”: 从“int”转换到“float”，可能丢失数据
+F:\d3d12\d3d12-chapter13-vecadd\d3d12-chapter13-vecadd\VecAddApp.cpp(216): warning C4244: “参数”: 从“int”转换到“float”，可能丢失数据
+  正在生成代码...
+  d3d12-chapter13-vecadd.vcxproj -> F:\d3d12\d3d12-chapter13-vecadd\x64\Debug\d3d12-chapter13-vecadd.exe
