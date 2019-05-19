@@ -99,7 +99,7 @@ void BlendApp::Draw(const GameTimer& gt)
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
 	//清空后背缓冲和深度模板缓冲
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), DirectX::Colors::LightSteelBlue, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), (float*)& mMainPassCB.FogColor, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	//设置渲染目标
