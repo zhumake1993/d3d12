@@ -8,4 +8,4 @@
   TheMain.cpp
   Waves.cpp
   正在生成代码...
-  d3d12-chapter10-blend.vcxproj -> F:\d3d12\d3d12-chapter10-blend\x64\Debug\d3d12-chapter10-blend.exe
+F:\d3d12\d3d12-chapter10-blend\d3d12-chapter10-blend\Common\GameTimer.cpp : fatal error C1090: PDB API 调用失败，错误代码“3”: F:\d3d12\d3d12-chapter10-blend\d3d12-chapter10-blend\x64\Debug\vc142.pdb
