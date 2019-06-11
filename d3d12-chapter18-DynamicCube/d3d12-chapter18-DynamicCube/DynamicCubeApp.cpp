@@ -908,15 +908,15 @@ void DynamicCubeApp::BuildRenderItems()
 	mAllRitems.push_back(std::move(boxRitem));
 
 	auto globeRitem = std::make_unique<RenderItem>();
-	XMStoreFloat4x4(&globeRitem->World, XMMatrixScaling(4.0f, 4.0f, 4.0f) * XMMatrixTranslation(0.0f, 2.0f, 0.0f));
+	XMStoreFloat4x4(&globeRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 2.0f, 0.0f));
 	XMStoreFloat4x4(&globeRitem->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
 	globeRitem->ObjCBIndex = 3;
 	globeRitem->Mat = mMaterials["mirror0"].get();
 	globeRitem->Geo = mGeometries["shapeGeo"].get();
 	globeRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	globeRitem->IndexCount = globeRitem->Geo->DrawArgs["box"].IndexCount;
-	globeRitem->StartIndexLocation = globeRitem->Geo->DrawArgs["box"].StartIndexLocation;
-	globeRitem->BaseVertexLocation = globeRitem->Geo->DrawArgs["box"].BaseVertexLocation;
+	globeRitem->IndexCount = globeRitem->Geo->DrawArgs["sphere"].IndexCount;
+	globeRitem->StartIndexLocation = globeRitem->Geo->DrawArgs["sphere"].StartIndexLocation;
+	globeRitem->BaseVertexLocation = globeRitem->Geo->DrawArgs["sphere"].BaseVertexLocation;
 
 	mRitemLayer[(int)RenderLayer::OpaqueDynamicReflectors].push_back(globeRitem.get());
 	mAllRitems.push_back(std::move(globeRitem));

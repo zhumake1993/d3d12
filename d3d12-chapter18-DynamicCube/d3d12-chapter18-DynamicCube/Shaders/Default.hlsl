@@ -68,7 +68,7 @@ float4 PS(VertexOut pin) : SV_Target
 
 	// æµ√Ê∑¥…‰
 	float3 r = reflect(-toEyeW, pin.NormalW);
-	//r = BoxCubeMapLookup(pin.PosW, normalize(r), float3(0.0f, 0.0f, 0.0f), float3(2500.0f, 2500.0f, 2500.0f));
+	r = BoxCubeMapLookup(pin.PosW, normalize(r), float3(0.0f, 0.0f, 0.0f), float3(2500.0f, 2500.0f, 2500.0f));
 	float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
 	float3 fresnelFactor = SchlickFresnel(fresnelR0, pin.NormalW, r);
 	litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
