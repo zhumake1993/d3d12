@@ -1,0 +1,1919 @@
+【Tip】
+
+输出调试信息：OutputDebugString(text.c_str());
+
+【项目初始化】
+
+1.64位
+2.常规-字符集-使用Unicode字符集
+3.C/C++-代码生成-浮点模型-快速(fp:fast)
+4.连接器-系统-子系统-窗口
+
+【向量代数】
+
+1.XMVECTOR与XMFLOATn
+使用XMVECTOR存储局部和全局变量
+使用XMFLOATn存储类的数据成员
+使用XMVECTOR进行数学计算
+
+2.XMVECTOR作为参数
+前三个XMVECTOR参数的类型应为FXMVECTOR
+第四个参数的类型是GXMVECTOR
+第五和第六个参数的类型是HXMVECTOR
+其它参数的类型是CXMVECTOR
+函数返回值不需要遵从此原则
+
+3.常数向量
+使用XMVECTORF32构造常数向量
+
+4.浮点数不能直接比较相等性
+
+【矩阵代数】
+
+1.XMMATRIX与XMFLOAT4X4
+使用XMMATRIX存储局部和全局变量
+使用XMFLOAT4X4存储类的数据成员
+使用XMMATRIX进行数学计算
+
+2.XMMATRIX作为参数
+第一个参数的类型是FXMMATRIX
+其它参数的类型是CXMMATRIX
+
+【变换】
+
+1.用(x,y,z,0)表示向量，用(x,y,z,1)表示点
+
+【D3D初始化基础】
+
+1.组件对象模型（COM）
+Microsoft::WRL::ComPtr可以看作是针对COM的智能指针，有三个主要方法：
+Get：返回指向COM的指针
+GetAddressOf：返回指向COM的指针的地址
+Reset；等价于赋值nullptr，使引用计数减一
+都有一个前缀I，如ID3D12GraphicsCommandList
+
+2.DXGI_FORMAT，数据格式，用于纹理，顶点数据，顶点索引等
+DXGI_FORMAT_R32G32B32_FLOAT：32位浮点
+DXGI_FORMAT_R16G16B16A16_UNORM：16位[0,1]
+DXGI_FORMAT_R32G32_UINT：32位无符号整数
+DXGI_FORMAT_R8G8B8A8_UNORM：8位[0,1]
+DXGI_FORMAT_R8G8B8A8_SNORM：8位[-1,1]
+DXGI_FORMAT_R8G8B8A8_SINT：8位[-128,127]
+DXGI_FORMAT_R8G8B8A8_UINT：8位[0,255]
+
+3.交换链的前后缓冲是纹理
+
+4.深度缓冲是纹理，可用格式如下：
+DXGI_FORMAT_D32_FLOAT_S8X24_UINT：32位浮点用作深度缓冲，8位无符号整数[0,255]用作模板缓冲，24位用作填充
+DXGI_FORMAT_D32_FLOAT：32位浮点深度缓冲
+DXGI_FORMAT_D24_UNORM_S8_UINT：24位[0,1]用作深度缓冲，8位[0,255]用作模板缓冲
+DXGI_FORMAT_D16_UNORM：16位[0,1]用作深度缓冲
+
+5.使用描述符将资源绑定到渲染管线上，描述符等价于视图
+
+6.描述符的类型：
+CBV/SRV/UAV：常量缓冲，着色器资源，无序存取视图资源
+Sampler：采样器资源，用于纹理
+RTV：渲染目标资源
+DSV：深度模板资源
+
+7.描述符堆是描述符的数组。不同类型的描述符不能存储在同一个描述符堆中
+创建描述符的代价较大，应该在初始化时创建描述符
+尽可能不要使用无类型资源
+
+8.两种抗锯齿技术：超级采样和多重采样
+超级采样代价过大，实际中更多地使用多重采样
+
+9.D3D中的多重采样
+采样结构体：
+typedef struct DXGI_SAMPLE_DESC
+{  
+	UINT Count;		每像素的采样数量
+	UINT Quality;	质量等级（具体意义依硬件厂商而定），范围依赖于纹理格式和Count
+} DXGI_SAMPLE_DESC;
+给定纹理格式和采样数量，查询质量等级：
+typedef struct D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS { 
+	DXGI_FORMAT Format; 
+	UINT SampleCount; 
+	D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG Flags; 
+	UINT NumQualityLevels;
+} D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS；
+
+D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
+msQualityLevels.Format = mBackBufferFormat;
+msQualityLevels.SampleCount = 4;
+msQualityLevels.Flags =D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+msQualityLevels.NumQualityLevels = 0;
+ThrowIfFailed(md3dDevice->CheckFeatureSupport(
+	D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,  
+	&msQualityLevels,  
+	sizeof(msQualityLevels)));
+合法的质量等级的范围是[0,NumQualityLevels–1]
+采样数量的最大值定义为：
+#define    D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT   ( 32 )
+采样数量通常设为4或8
+如果不想使用多重采样，将采样数量设为1，并把质量等级设为0
+所有支持D3D11的设备都支持4倍多重采样，不论渲染目标目标格式
+交换链缓冲和深度缓冲都需要DXGI_SAMPLE_DESC，并且多重采样的设定要保持一致
+
+10.特征等级：D3D_FEATURE_LEVEL枚举类型。暂时假定支持D3D_FEATURE_LEVEL_11_0
+
+11.Direcx图形基础设施（DXGI）
+显示适配器：通常是物理硬件，如显卡。系统也会有一个软件显示适配器来模拟硬件图形功能
+一个系统可以有多个显示适配器，显示适配器用IDXGIAdapter接口表示
+使用EnumAdapters查询显示适配器
+
+一个系统可以有多个显示器，显示器是显示输出的一个例子，显示输出用IDXGIOutput接口表示
+一个显示适配器可以关联多个显示输出
+使用EnumOutputs查询新时输出
+“Microsoft Basic Render Driver”没有显示输出
+
+每个显示器支持多种显示模式，显示模式用DXGI_MODE_DESC表示：
+typedef struct DXGI_MODE_DESC{  
+	UINT Width;                   // 分辨率宽
+	UINT Height;                  // 分辨率高
+	DXGI_RATIONAL RefreshRate;  
+	DXGI_FORMAT Format;           // 显示格式
+	DXGI_MODE_SCANLINE_ORDER ScanlineOrdering;	//渐进的 vs. 交织的
+	DXGI_MODE_SCALING Scaling;    // 图像如何在显示器上拉伸
+} DXGI_MODE_DESC;
+
+typedef struct DXGI_RATIONAL{  
+	UINT Numerator;  
+	UINT Denominator;
+} DXGI_RATIONAL;
+
+typedef enum DXGI_MODE_SCANLINE_ORDER{  
+	DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED    = 0,  
+	DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE    = 1,
+	DXGI_MODE_SCANLINE_ORDER_UPPER_FIELD_FIRST = 2,  
+	DXGI_MODE_SCANLINE_ORDER_LOWER_FIELD_FIRST = 3
+} DXGI_MODE_SCANLINE_ORDER;
+
+typedef enum DXGI_MODE_SCALING{  
+	DXGI_MODE_SCALING_UNSPECIFIED  = 0,  
+	DXGI_MODE_SCALING_CENTERED   = 1,  
+	DXGI_MODE_SCALING_STRETCHED   = 2
+} DXGI_MODE_SCALING;
+固定显示模式格式，可以查询一个显示输出所支持的所有显示模式，使用GetDisplayModeList
+
+12.CheckFeatureSupport函数
+HRESULT ID3D12Device::CheckFeatureSupport(  
+D3D12_FEATURE Feature,		// 要检测的特征
+void *pFeatureSupportData,	// 指向用以检索特征支持信息的数据结构的指针
+UINT FeatureSupportDataSize	// pFeatureSupportData所指数据结构的大小
+);
+
+使用CheckFeatureSupport函数查询特征等级
+typedef struct D3D12_FEATURE_DATA_FEATURE_LEVELS { 
+	UINT          NumFeatureLevels; 
+	const D3D_FEATURE_LEVEL *pFeatureLevelsRequested; 
+	D3D_FEATURE_LEVEL   MaxSupportedFeatureLevel;
+} D3D12_FEATURE_DATA_FEATURE_LEVELS;
+
+D3D_FEATURE_LEVEL featureLevels[3] =
+{  
+	D3D_FEATURE_LEVEL_11_0, // 首先检查D3D11
+	D3D_FEATURE_LEVEL_10_0, // 然后检查D3D10
+	D3D_FEATURE_LEVEL_9_3  // 最后检查D3D9.3
+};
+
+D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevelsInfo;
+featureLevelsInfo.NumFeatureLevels = 3;
+featureLevelsInfo.pFeatureLevelsRequested = featureLevels;
+md3dDevice->CheckFeatureSupport(  
+	D3D12_FEATURE_FEATURE_LEVELS,  
+	&featureLevelsInfo,  
+	sizeof(featureLevelsInfo));
+函数通过MaxSupportedFeatureLevel返回最大支持的特征等级
+
+13.CPU/GPU同步
+指令队列用ID3D12CommandQueue表示
+通过填充D3D12_COMMAND_QUEUE_DESC并调用CreateCommandQueue来创建指令队列
+
+方法ExecuteCommandLists将指令添加到指令队列中
+图形指令列表用ID3D12GraphicsCommandList表示，其继承自ID3D12CommandList
+通过Close方法指示指令添加完毕，该方法必须在ExecuteCommandLists前执行
+指令列表通过CreateCommandList创建：
+HRESULT ID3D12Device::CreateCommandList(
+	UINT nodeMask,  // 指示相关联的GPU，0表示单GPU系统
+	D3D12_COMMAND_LIST_TYPE type,  // 指令列表的类型
+	ID3D12CommandAllocator *pCommandAllocator,  // 相关联的指令分配器，类型必须一致
+	ID3D12PipelineState *pInitialState,  // 指令列表的初始管线状态
+	REFIID riid,  // ID3D12CommandList的COM ID
+	void **ppCommandList  // 输出一个指向被创建的指令列表的指针
+);
+
+与一个指令列表相关联的是一个指令分配器，用ID3D12CommandAllocator表示
+当指令被加入到指令列表中，它们实际上被存储在相关联的指令分配器中
+ExecuteCommandLists执行后，指令列表将会引用指令分配器中的指令
+指令分配器通过CreateCommandAllocator创建：
+HRESULT ID3D12Device::CreateCommandAllocator(   
+	D3D12_COMMAND_LIST_TYPE type,	// 相关联的指令列表的类型
+	REFIID riid,  					// ID3D12CommandAllocator的COM ID
+	void **ppCommandAllocator		// 输出一个指向被创建的指令分配器的指针
+);
+
+可以使用GetNodeCount来查询GPU适配器节点的数量
+
+一个指令分配器可以关联多个指令列表，但只能同时使用一个指令列表来记录指令
+当指令列表被创建或重置时，其处于open状态
+
+当调用ExecuteCommandList(C)后，就可以通过调用Reset方法来重用C的内存
+HRESULT ID3D12CommandList::Reset(   
+	ID3D12CommandAllocator *pAllocator,	// 相关联的指令分配器，类型必须一致
+	ID3D12PipelineState *pInitialState	// 指令列表的初始管线状态
+);
+重置指令列表并不影响指令队列中的指令，因为指令分配器在内存中仍然拥有指令队列所引用的指令
+
+Reset方法可以重用指令分配器的内存。但是，由于指令队列仍然有可能引用指令分配器中的指令
+在确保GPU执行完指令分配器中的所有指令之前，不能reset指令分配器
+
+栅栏被用来同步CPU/GPU，用ID3D12Fence表示，使用CreateFence创建
+
+14.资源过渡
+使用过渡资源分界线，用CD3DX12_RESOURCE_BARRIER表示
+使用ResourceBarrier来过渡资源
+
+【D3D初始化】
+
+1.设备
+设备用ID3D12Device表示，设备代表一个显示适配器
+设备可用来检测支持的特征等级，创建资源，视图，指令列表等
+使用D3D12CreateDevice创建设备：
+HRESULT WINAPI D3D12CreateDevice(  
+	IUnknown* pAdapter,  // 指定设备要代表的显示适配器，null表示指定主显示适配器
+	D3D_FEATURE_LEVEL MinimumFeatureLevel,  // 应用要求支持的最小特征等级
+	REFIID riid, // ID3D12Device COM ID 
+	void** ppDevice // 返回创建的设备
+);
+如果创建设备失败，可转为创建WARP设备。WARP设备是一个软件适配器
+
+2.栅栏和描述符大小
+CreateFence
+GetDescriptorHandleIncrementSize
+
+3.4X多重采样抗锯齿
+
+4.指令队列，指令列表，指令分配器
+
+5.交换链
+typedef struct DXGI_SWAP_CHAIN_DESC{  
+	DXGI_MODE_DESC BufferDesc;  // 后缓冲的属性
+	DXGI_SAMPLE_DESC SampleDesc;  // 多重采样的数量和质量等级
+	DXGI_USAGE BufferUsage;  // 指定DXGI_USAGE_RENDER_TARGET_OUTPUT
+	UINT BufferCount;  // 缓冲的数量，指定为2
+	HWND OutputWindow;  // 输出窗口句柄
+	BOOL Windowed;  // 窗口还是全屏
+	DXGI_SWAP_EFFECT SwapEffect;  // 指定DXGI_SWAP_EFFECT_FLIP_DISCARD
+	UINT Flags;// 指定切换到全屏时如何改变显示模式
+} DXGI_SWAP_CHAIN_DESC;
+
+typedef struct DXGI_MODE_DESC{  
+	UINT Width;                   // 分辨率宽
+	UINT Height;                  // 分辨率高
+	DXGI_RATIONAL RefreshRate;  
+	DXGI_FORMAT Format;           // 显示格式
+	DXGI_MODE_SCANLINE_ORDER ScanlineOrdering;	//渐进的 vs. 交织的
+	DXGI_MODE_SCALING Scaling;    // 图像如何在显示器上拉伸
+} DXGI_MODE_DESC;
+
+创建交换链
+HRESULT IDXGIFactory::CreateSwapChain( 
+	IUnknown *pDevice,      // 指向ID3D12CommandQueue的指针
+	DXGI_SWAP_CHAIN_DESC *pDesc, // 指向DXGI_SWAP_CHAIN_DESC的指针
+	IDXGISwapChain **ppSwapChain // 创建的交换链
+);
+
+6.描述符堆
+描述符堆用ID3D12DescriptorHeap表示，用CreateDescriptorHeap创建
+使用句柄来引用描述符堆中的描述符
+GetCPUDescriptorHandleForHeapStart返回描述符堆中的第一个描述符的句柄
+CD3DX12_CPU_DESCRIPTOR_HANDLE返回指定句柄：
+CD3DX12_CPU_DESCRIPTOR_HANDLE(    
+	mRtvHeap->GetCPUDescriptorHandleForHeapStart(), 
+	mCurrBackBuffer,   // 偏移  
+	mRtvDescriptorSize 	// 描述符的大小
+);
+
+7.渲染目标视图
+获取交换链中的缓冲资源：
+HRESULT IDXGISwapChain::GetBuffer(  
+	UINT Buffer,  // 想要获取的缓冲的索引
+	REFIID riid,  // ID3D12Resource COM  ID 
+	void **ppSurface  // 返回指向代表目标缓冲的ID3D12Resource的指针
+);
+创建渲染目标视图
+void ID3D12Device::CreateRenderTargetView(  
+	ID3D12Resource *pResource,  // 指定用作渲染目标的资源
+	const D3D12_RENDER_TARGET_VIEW_DESC *pDesc,  // 如果资源有确切类型，指定null
+	D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor  // 创建的渲染目标视图的句柄
+);
+
+8.深度模板缓冲和视图
+深度缓冲是纹理资源，纹理是一种GPU资源，要填充D3D12_RESOURCE_DESC：
+typedef struct D3D12_RESOURCE_DESC  {  
+	D3D12_RESOURCE_DIMENSION Dimension;  // 资源维度，
+	UINT64 Alignment;  
+	UINT64 Width;  // 纹理的宽度。对于缓冲资源，改值是缓冲的字节大小
+	UINT Height;  // 纹理的高度
+	UINT16 DepthOrArraySize;  // 纹理深度，或纹理数组大小（针对1D和2D纹理）
+	UINT16 MipLevels;  // mipmap等级。对于深度模板缓冲，只需要1等级
+	DXGI_FORMAT Format;  // 格式
+	DXGI_SAMPLE_DESC SampleDesc;  // 多重采样数量和质量等级
+	D3D12_TEXTURE_LAYOUT Layout;  // 指定D3D12_TEXTURE_LAYOUT_UNKNOWN
+	D3D12_RESOURCE_MISC_FLAG MiscFlags;  // 指定D3D12_RESOURCE_MISC_DEPTH_STENCIL
+} D3D12_RESOURCE_DESC;
+
+enum D3D12_RESOURCE_DIMENSION  {    
+D3D12_RESOURCE_DIMENSION_UNKNOWN = 0,    
+D3D12_RESOURCE_DIMENSION_BUFFER = 1,    
+D3D12_RESOURCE_DIMENSION_TEXTURE1D = 2,    
+D3D12_RESOURCE_DIMENSION_TEXTURE2D = 3,    
+D3D12_RESOURCE_DIMENSION_TEXTURE3D = 4  
+} D3D12_RESOURCE_DIMENSION;
+
+GPU资源存放在堆中，本质上是拥有特定属性的GPU内存块
+使用CreateCommittedResource创建资源，并委托给拥有指定属性的堆：
+HRESULT ID3D12Device::CreateCommittedResource(  
+	const D3D12_HEAP_PROPERTIES *pHeapProperties,
+	D3D12_HEAP_MISC_FLAG HeapMiscFlags,  // 指定D3D12_HEAP_MISC_NONE
+	const D3D12_RESOURCE_DESC *pResourceDesc,  
+	D3D12_RESOURCE_USAGE InitialResourceState,  // 初始资源状态
+	const D3D12_CLEAR_VALUE *pOptimizedClearValue,  // 优化值，指定null表示不指定优化值
+	REFIID riidResource,  // ID3D12Resource COM ID
+	void **ppvResource // 返回指向ID3D12Resource的指针
+);
+
+typedef struct D3D12_HEAP_PROPERTIES { 
+	D3D12_HEAP_TYPE     Type; 
+	D3D12_CPU_PAGE_PROPERTIES CPUPageProperties; 
+	D3D12_MEMORY_POOL    MemoryPoolPreference; 
+	UINT CreationNodeMask; 
+	UINT VisibleNodeMask;
+} D3D12_HEAP_PROPERTIES;
+
+D3D12_HEAP_TYPE：
+D3D12_HEAP_TYPE_DEFAULT：资源仅由GPU存取
+D3D12_HEAP_TYPE_UPLOAD：从CPU上载至GPU
+D3D12_HEAP_TYPE_READBACK：由CPU读取
+D3D12_HEAP_TYPE_CUSTOM：高级应用
+
+struct D3D12_CLEAR_VALUE  {    
+	DXGI_FORMAT Format;    
+	union     
+	{      
+		FLOAT Color[ 4 ];      
+		D3D12_DEPTH_STENCIL_VALUE DepthStencil;    
+	};  
+}D3D12_CLEAR_VALUE;
+
+资源应尽可能放在默认堆中来获得最佳性能
+
+9.视口
+typedef struct D3D12_VIEWPORT {  
+	FLOAT TopLeftX;  
+	FLOAT TopLeftY;  
+	FLOAT Width;  
+	FLOAT Height;  
+	FLOAT MinDepth;  
+	FLOAT MaxDepth;
+} D3D12_VIEWPORT;
+使用RSSetViewports设置
+不能在同一个渲染目标上设置多个视口
+当reset指令列表后必须reset视口
+可用来实现分屏
+
+10.剪裁矩形
+typedef struct tagRECT{  
+	LONG  left;  
+	LONG  top;  
+	LONG  right;  
+	LONG  bottom;
+} RECT;
+使用RSSetScissorRects设置
+不能在同一个渲染目标上设置多个剪裁矩形
+当reset指令列表后必须reset剪裁矩形
+
+11.计时
+在多处理器上，QueryPerformanceCounter可能产生bug，可使用SetThreadAffinityMask来固定处理器
+
+12.其它
+清空渲染目标视图
+void ID3D12GraphicsCommandList::ClearRenderTargetView(   
+	D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView,  
+	const FLOAT ColorRGBA[ 4 ],  // 清空至该颜色
+	UINT NumRects,  // pRects中元素的数量
+	const D3D12_RECT *pRects // 指定要清空的矩形，nullptr表示整个渲染目标
+);
+
+清空深度模板缓冲
+void ID3D12GraphicsCommandList::ClearDepthStencilView(   
+	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView,  
+	D3D12_CLEAR_FLAGS ClearFlags,  // 指定深度缓冲，还是模板缓冲，或二者都是
+	FLOAT Depth,  // 清空深度缓冲至改值
+	UINT8 Stencil,  // 清空模板缓冲至改值
+	UINT NumRects,  // pRects中元素的数量
+	const D3D12_RECT *pRects  // 指定要清空的矩形，nullptr表示整个渲染目标
+);
+
+设置渲染目标
+void ID3D12GraphicsCommandList::OMSetRenderTargets(   
+	UINT NumRenderTargetDescriptors,  // 要绑定的渲染目标视图的数量
+	const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,  // 指向渲染目标视图数组的指针
+	BOOL RTsSingleHandleToDescriptorRange,  // 如果pRenderTargetDescriptors中的所有渲染目标视图在描述符堆中是连续的，指定true，否则false
+	const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor  // 指向深度模板缓冲视图的指针
+);
+
+【3D绘图】
+
+1.顶点和输入布局
+顶点结构
+struct Vertex{  
+	XMFLOAT3 Pos;  
+	XMFLOAT4 Color;
+};
+
+输入布局描述
+typedef struct D3D12_INPUT_LAYOUT_DESC{  
+	const D3D12_INPUT_ELEMENT_DESC *pInputElementDescs;  
+	UINT NumElements;
+} D3D12_INPUT_LAYOUT_DESC;
+
+输入元素描述
+typedef struct D3D12_INPUT_ELEMENT_DESC{  
+	LPCSTR SemanticName;  // 元素名，要与着色器中的签名一致
+	UINT SemanticIndex;  // 语义索引
+	DXGI_FORMAT Format;  // 格式
+	UINT InputSlot;  // 输入槽口索引
+	UINT AlignedByteOffset;  // 字节偏移
+	D3D12_INPUT_CLASSIFICATION InputSlotClass;  // 指定D3D12_INPUT_PER_VERTEX_DATA
+	INT InstanceDataStepRate;  // 指定0
+} D3D12_INPUT_ELEMENT_DESC;
+
+2。顶点缓冲
+顶点数据要放在一个叫做缓冲的GPU资源中（ID3D12Resource）
+
+包裹类CD3DX12_RESOURCE_DESC
+static inline CD3DX12_RESOURCE_DESC Buffer( 
+	UINT64 width,    
+	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,    
+	UINT64 alignment = 0 )
+{  
+	return CD3DX12_RESOURCE_DESC(
+		D3D12_RESOURCE_DIMENSION_BUFFER,     
+		alignment, width, 1, 1, 1,     DXGI_FORMAT_UNKNOWN, 1, 0,     
+		D3D12_TEXTURE_LAYOUT_ROW_MAJOR, flags );
+}
+width是缓冲的字节大小
+
+对于静态几何体，其顶点缓冲可以放在默认堆（D3D12_HEAP_TYPE_DEFAULT）中
+需要通过上载缓冲（D3D12_HEAP_TYPE_UPLOAD）来初始化默认缓冲
+先将顶点数据从系统内存拷贝至上载缓冲，再讲顶点数据从上载缓冲拷贝至默认缓冲
+参考d3dUtil::CreateDefaultBuffer方法
+
+typedef struct D3D12_SUBRESOURCE_DATA{  
+	const void *pData;  // 用来初始化缓冲的数据的系统内存指针
+	LONG_PTR RowPitch;  // 对于缓冲来说，数据的大小
+	LONG_PTR SlicePitch;  // 对于缓冲来说，数据的大小
+} D3D12_SUBRESOURCE_DATA;
+
+顶点缓冲视图D3D12_VERTEX_BUFFER_VIEW_DESC，不需要描述符堆
+typedef struct D3D12_VERTEX_BUFFER_VIEW
+{  
+	D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;  // 顶点缓冲的虚地址，用ID3D12Resource::GetGPUVirtualAddress获取
+	UINT SizeInBytes;  // 顶点缓冲中从BufferLocation开始的字节大小
+	UINT StrideInBytes;  // 每个顶点元素的字节大小
+}D3D12_VERTEX_BUFFER_VIEW;
+
+绑定到渲染管线
+void ID3D12GraphicsCommandList::IASetVertexBuffers(  
+	UINT StartSlot,  // 开始输入槽口
+	UINT NumBuffers,  // 顶点缓冲数量
+	const D3D12_VERTEX_BUFFER_VIEW *pViews  // 指向顶点缓冲视图数组中第一个元素的指针
+);
+
+绘制
+void ID3D12CommandList::DrawInstanced(  
+	UINT VertexCountPerInstance,  // 要绘制的顶点数量（每个实例）
+	UINT InstanceCount,  // 实例数量
+	UINT StartVertexLocation,  // 顶点缓冲中开始绘制的第一个顶点的索引
+	UINT StartInstanceLocation  // 实例位置
+);
+
+3。索引和索引缓冲
+索引缓冲视图同样不需要描述符堆
+typedef struct D3D12_INDEX_BUFFER_VIEW{
+	D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;  // 索引缓冲的虚地址
+	UINT SizeInBytes;  // 索引缓冲中从BufferLocation开始的字节大小
+	DXGI_FORMAT Format;  // DXGI_FORMAT_R16_UINT（推荐）或者DXGI_FORMAT_R32_UINT
+} D3D12_INDEX_BUFFER_VIEW;
+
+使用ID3D12CommandList::SetIndexBuffer将索引缓冲绑定至管线
+
+使用缓冲时，必须使用DrawIndexedInstanced代替DrawInstanced
+void ID3D12GraphicsCommandList::DrawIndexedInstanced(  
+	UINT IndexCountPerInstance,  // 要绘制的索引数量（每个实例）
+	UINT InstanceCount,  // 实例数量
+	UINT StartIndexLocation,  // 索引缓冲中标记开始绘制点的索引
+	INT BaseVertexLocation,  // 加在索引上的一个整数，也即开始顶点位置
+	UINT StartInstanceLocation  // 实例位置
+);
+
+4.着色器
+透视除由硬件来完成
+顶点数据可以提供顶点着色器不需要的额外数据
+
+5.常量缓冲
+常量缓冲通常每帧更新一次，因此要用上载缓冲
+常量缓冲的大小必须要是最小硬件分配大小（256字节）的整数倍
+HLSL中的结构会自动填充至256的整数倍
+
+为了将数据从CPU拷贝至常量缓冲，需要获得指向资源数据的指针
+ComPtr<ID3D12Resource> mUploadBuffer;
+BYTE* mMappedData = nullptr;
+mUploadBuffer->Map(0, nullptr,reinterpret_cast<void**>(&mMappedData));
+memcpy(mMappedData, &data, dataSizeInBytes);
+
+使用完常量缓冲后需要unmap
+if(mUploadBuffer != nullptr)  
+	mUploadBuffer->Unmap(0, nullptr);
+mMappedData = nullptr;
+
+6.常量缓冲描述符
+创建描述符堆
+D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
+cbvHeapDesc.NumDescriptors = 1;
+cbvHeapDesc.Type =D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+cbvHeapDesc.Flags =D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+cbvHeapDesc.NodeMask = 0;
+ComPtr<ID3D12DescriptorHeap> mCbvHeap
+md3dDevice->CreateDescriptorHeap(&cbvHeapDesc,  IID_PPV_ARGS(&mCbvHeap));
+
+填充D3D12_CONSTANT_BUFFER_VIEW_DESC
+D3D12_CONSTANT_BUFFER_VIEW_DESC::SizeInBytes必须是256的整数倍
+D3D12_CONSTANT_BUFFER_VIEW_DESC::OffsetInBytes也必须是256的整数倍
+使用ID3D12Device::CreateConstantBufferView创建视图
+
+7.根签名和描述符表
+根签名用ID3D12RootSignature表示
+根签名是根参数的数组
+根参数可以是根常量，跟描述符，描述符表
+描述符表指定了描述符堆中的一段连续的描述符
+
+根签名并不做实际的资源绑定
+当设置好根签名后，使用SetGraphicsRootDescriptorTable将描述符表绑定到管线
+voidID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(   
+	UINT RootParameterIndex,  // 设置的根参数的索引
+	D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor  // 设置的描述符表中的第一个描述符的句柄
+);
+
+出于性能考虑，尽量减少根签名的体积，尽量减少每帧中修改跟签名的次数
+
+修改根签名后会丢失所有绑定，新的根签名要重新绑定所有的资源
+
+8.编译着色器
+HRESULT D3DCompileFromFile(  
+	LPCWSTR pFileName,  // hlsl的文件名
+	const D3D_SHADER_MACRO *pDefines,  // 指定null
+	ID3DInclude *pInclude,  // 指定null
+	LPCSTR pEntrypoint,  // 着色器入口的函数名称
+	LPCSTR pTarget,  // 指定着色器程序的类型和版本
+	UINT Flags1,  // 只能如何编译代码
+	UINT Flags2,  // 高级功能
+	ID3DBlob **ppCode,  // 返回指向ID3DBlob的指针，其中存储编译好的字节码
+	ID3DBlob **ppErrorMsgs  // 返回指向ID3DBlob的指针，其中存储错误信息
+);
+
+ID3DBlob是通用内存块，有两个方法：
+LPVOID GetBufferPointer：返回指向数据的void* 指针
+SIZE_T GetBufferSize：返回缓冲的字节大小
+
+编译着色器并不会将其绑定至管线
+
+9.光栅器
+用D3D12_RASTERIZER_DESC表示，用来配置光栅化阶段
+typedef struct D3D12_RASTERIZER_DESC {  
+	D3D12_FILL_MODE FillMode;   // 默认：D3D12_FILL_SOLID  
+	D3D12_CULL_MODE CullMode;   // 默认：D3D12_CULL_BACK  
+	BOOL FrontCounterClockwise; // 默认: false  
+	INT DepthBias;              // 默认: 0  
+	FLOAT DepthBiasClamp;       // 默认: 0.0f
+	FLOAT SlopeScaledDepthBias; // 默认: 0.0f  
+	BOOL DepthClipEnable;       // 默认: true  
+	BOOL ScissorEnable;         // 默认: false  
+	BOOL MultisampleEnable;     // 默认: false  
+	BOOL AntialiasedLineEnable; // 默认: false  
+	UINT ForcedSampleCount;     // 默认: 0  
+	D3D12_CONSERVATIVE_RASTERIZATION_MODEConservativeRaster;  // 默认：D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
+} D3D12_RASTERIZER_DESC;
+
+10.管线状态对象
+typedef struct D3D12_GRAPHICS_PIPELINE_STATE_DESC{  
+	ID3D12RootSignature *pRootSignature;  // 根签名
+	D3D12_SHADER_BYTECODE VS;  // 顶点着色器
+	D3D12_SHADER_BYTECODE PS;  // 像素着色器
+	D3D12_SHADER_BYTECODE DS;  // 域着色器
+	D3D12_SHADER_BYTECODE HS;  // 壳着色器
+	D3D12_SHADER_BYTECODE GS;  // 几何着色器
+	D3D12_STREAM_OUTPUT_DESC StreamOutput;  // 高级功能
+	D3D12_BLEND_DESC BlendState;  // 指定混合状态
+	UINT SampleMask;  // 采样掩码
+	D3D12_RASTERIZER_DESC RasterizerState;  // 指定光栅状态
+	D3D12_DEPTH_STENCIL_DESC DepthStencilState;  // 指定深度模板状态
+	D3D12_INPUT_LAYOUT_DESC InputLayout;  // 指定输入布局
+	D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;  // 拓扑
+	UINT NumRenderTargets;  // 同时使用的渲染目标状态
+	DXGI_FORMAT RTVFormats[8];  // 渲染目标格式
+	DXGI_FORMAT DSVFormat;  // 深度模板格式
+	DXGI_SAMPLE_DESC SampleDesc;  // 设置多重采样
+} D3D12_GRAPHICS_PIPELINE_STATE_DESC;
+
+使用ID3D12Device::CreateGraphicsPipelineState创建管线状态对象
+
+管线状态对象的验证和创建可能很耗时，应该放在初始化阶段
+
+出于性能考虑，尽量不要修改管线状态对象，尤其不要每一次绘图调用都修改管线状态对象
+
+【3D绘图2】
+
+1.帧资源
+存储CPU需要修改的资源
+
+2.渲染项
+存储绘制一个物体所需要的数据
+
+3.根签名
+根签名是跟参数的数组，根参数可以是描述符表，根描述符，根常量
+描述符表：引用堆中的连续一段描述符
+根描述符：直接指定一个描述符，该描述符不需要在描述符堆中。只有常量缓冲的CBV，缓冲的SRV/UAV可以被绑定为跟描述符，纹理的SRV不能绑定位跟描述符
+根常量：直接绑定32位常量值得列表
+
+出于性能要求，根签名至多存放64DWORDs，三种根参数的消耗分别是：
+描述符表：1DWORD
+根描述符：2DWORDs
+根常量：1DWORD每32位常量
+
+描述符表
+typedef struct D3D12_DESCRIPTOR_RANGE{  
+	D3D12_DESCRIPTOR_RANGE_TYPE RangeType;  // 描述符类型
+	UINT NumDescriptors;  // 描述符数量
+	UINT BaseShaderRegister;  // 基础着色器注册参数
+	UINT RegisterSpace;  // 注册器空间
+	UINT OffsetInDescriptorsFromTableStart;  // 距离表开头偏移的描述符的数量
+}D3D12_DESCRIPTOR_RANGE;
+
+根描述符
+typedef struct D3D12_ROOT_DESCRIPTOR{  
+	UINT ShaderRegister;  // 着色器注册参数
+	UINT RegisterSpace;  // 注册器空间
+}D3D12_ROOT_DESCRIPTOR;
+直接使用SetGraphicsRootConstantBufferView绑定到管线
+void ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
+	UINT RootParameterIndex,  // 根参数的索引
+	D3D12_GPU_VIRTUAL_ADDRESS BufferLocation  // 含有常量缓冲数据的资源的虚地址
+); 
+
+根常量
+typedef struct D3D12_ROOT_CONSTANTS  {    
+	UINT ShaderRegister;    // 着色器注册参数
+	UINT RegisterSpace;    // 注册器空间
+	UINT Num32BitValues;  // 32位常量的数量
+}D3D12_ROOT_CONSTANTS;
+
+直接使用SetGraphicsRoot32BitConstants绑定到管线
+ID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(   
+	UINT RootParameterIndex,  // 根参数的索引
+	UINT Num32BitValuesToSet,  // 32位常量的数量
+	const void *pSrcData,  // 指向32位常量的数组的指针
+	UINT DestOffsetIn32BitValues  // 偏移的32位常量的数量
+);
+
+排列根参数：修改频率高的放在前面
+尽量减少根签名的转换
+
+【光照】
+
+1.变换法向量
+如果变换矩阵包含分均匀变换和剪切变换，那么需要使用逆转置矩阵
+注意，求逆转置矩阵时要清空translation行
+
+2.重要的向量
+L：光向量，指向光源
+n：法向量
+h：光向量和视向量之间的半路向量
+A_L：入射环境光的量
+B_L：入射直接光的量
+m_d：漫反射的光的量
+L*n：兰伯特余弦定理
+alpha_h：h和L之间的角度
+R_F(alpha_h)：基于菲涅尔效应所反射的光的量
+m：粗糙度
+(n*h)_h：h与n成theta_h的微平面的量
+(m+8)/8：规整系数，以确保镜面发射中的能量守恒
+
+3.兰伯特余弦定理
+刻画入射光的强度
+f(theta) = max(L*n,0)
+
+4.漫反射光
+c_d = max(L*n,0)*B_L @ m_d
+
+5.环境光
+c_a = A_L @ m_d
+
+6.镜面光
+菲涅尔效应：刻画被反射的入射光的比例
+R_F(theta_i) = R_F(0)+(1-R_F(0))(1-costheta_i)^5
+
+粗糙度
+刻画h与n成theta_h的微平面的数量
+s(theta_h) = (m+8)/8 (n*h)^m
+
+c_s = max(L*n,0)*B_L @ R_F(alpha_i) (m+8)/8 (n*h)^m
+
+7.平行光
+
+8.点光
+衰变
+
+9.聚光
+衰变
+k_spot(phi) = max(-L*d,0)^s
+
+【纹理】
+
+1.DDS格式，专用于3D绘图
+对于非压缩的数据，用下面的格式：
+DXGI_FORMAT_B8G8R8A8_UNORM：低动态范围图像
+DXGI_FORMAT_B8G8R8X8_UNORM：低动态范围图像
+DXGI_FORMAT_R16G16B16A16_FLOAT：高动态范围图像
+
+压缩的数据的格式：
+DXGI_FORMAT_BC1_UNORM
+DXGI_FORMAT_BC2_UNORM
+DXGI_FORMAT_BC3_UNORM
+DXGI_FORMAT_BC4_UNORM
+DXGI_FORMAT_BC5_UNORM
+DXGI_FORMAT_BC6_UNORM
+DXGI_FORMAT_BC7_UNORM
+
+压缩纹理只能用于管线的输入，不能作为渲染目标
+
+由于压缩算法的原因，纹理的维度必须是4的倍数
+
+2.着色器资源描述符
+typedef struct D3D12_SHADER_RESOURCE_VIEW_DESC{  
+	DXGI_FORMAT Format;  // 数据格式
+	D3D12_SRV_DIMENSION ViewDimension;  // 因为要使用2D纹理，指定D3D12_SRV_DIMENSION_TEXTURE2D
+	UINT Shader4ComponentMapping;  // 指定D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+	union   
+	{    
+		D3D12_BUFFER_SRV Buffer;    
+		D3D12_TEX1D_SRV Texture1D;    
+		D3D12_TEX1D_ARRAY_SRV Texture1DArray;    
+		D3D12_TEX2D_SRV Texture2D;    //
+		D3D12_TEX2D_ARRAY_SRV Texture2DArray;    
+		D3D12_TEX2DMS_SRV Texture2DMS;    
+		D3D12_TEX2DMS_ARRAY_SRV Texture2DMSArray;    
+		D3D12_TEX3D_SRV Texture3D;    
+		D3D12_TEXCUBE_SRV TextureCube;    
+		D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;  
+	};
+}D3D12_SHADER_RESOURCE_VIEW_DESC;
+
+typedef struct D3D12_TEX2D_SRV
+{  
+	UINT MostDetailedMip;  // 指定最高纹理映射等级的索引
+	UINT MipLevels;  // 从MostDetailedMip开始的纹理映射等级的数量
+	UINT PlaneSlice;  // 平面索引
+	FLOAT ResourceMinLODClamp;  // 指定最小纹理映射等级，0.0指定所有等级
+} D3D12_TEX2D_SRV;
+
+3.过滤器
+放大
+常量插值法（点过滤）和线性插值法（线性过滤），实际应用中多用线性插值法
+
+缩小，使用纹理映射
+纹理映射点过滤和纹理映射线性过滤
+
+各向异性过滤
+缓解法向量与视向量接近正交时产生的失真
+
+4.地址模式
+wrap：重复图像
+border color：将域外的点映射为指定颜色
+clamp：将域外的点映射为域内的最近点的颜色
+mirror：镜像图像
+
+5.采样器对象
+需要绑定到描述符上
+typedef struct D3D12_SAMPLER_DESC{  
+	D3D12_FILTER Filter;  // 过滤类型
+	D3D12_TEXTURE_ADDRESS_MODE AddressU;  // 水平u轴方向的地址模式
+	D3D12_TEXTURE_ADDRESS_MODE AddressV;  // 垂直v轴方向的地址模式
+	D3D12_TEXTURE_ADDRESS_MODE AddressW;  // 深度w轴方向的地址模式
+	FLOAT MipLODBias;  // 纹理映射等级偏移
+	UINT MaxAnisotropy;  // 最大各向异性值，范围[1,16]
+	D3D12_COMPARISON_FUNC ComparisonFunc;  // 用于阴影映射
+	FLOAT BorderColor[ 4 ];  // 指定边界颜色
+	FLOAT MinLOD;  // 最小纹理映射等级
+	FLOAT MaxLOD;  // 最大纹理映射等级
+} D3D12_SAMPLER_DESC;
+
+D3D12_FILTER类型：
+D3D12_FILTER_MIN_MAG_MIP_POINT：放大：点过滤，缩小：点过滤
+D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT：放大：线性过滤，缩小：点过滤
+D3D12_FILTER_MIN_MAG_MIP_LINEAR：放大：线性过滤，缩小：线性过滤
+D3D12_FILTER_ANISOTROPIC：各向异性过滤
+
+6.静态采样器
+不需要创建描述符堆
+至多2032个
+
+CD3DX12_ROOT_SIGNATURE_DESC类的Init方法有两个参数可以设定静态采样器
+
+【混合】
+
+1.混合方程
+C = C_src op1 F_src op2 C_dst op1 F_dst 
+A = A_src f_src op2 A_dst f_dst 
+op2可以使用逻辑操作符
+
+2.混合系数
+令C_src=(r_s,g_s,b_s),A_src=a_s,C_dst=(r_d,g_d,b_d),A_dst=a_d
+令F为F_src或者F_dst，f为f_src或f_dst
+a′_s = clamp(a_s, 0, 1)
+
+D3D12_BLEND_ZERO: F = (0, 0, 0) and f = 0
+D3D12_BLEND_ONE: F = (1, 1, 1) and f = 1
+D3D12_BLEND_SRC_COLOR: F = (r_s, g_s, b_s)
+D3D12_BLEND_INV_SRC_COLOR: F_src = (1 − r_s, 1 − g_s, 1 − b_s)
+D3D12_BLEND_SRC_ALPHA: F = (a_s, a_s, a_s) and f = a_s
+D3D12_BLEND_INV_SRC_ALPHA: F = (1 − a_s, 1 − a_s, 1 − a_s) and f = (1 − a_s)
+D3D12_BLEND_DEST_ALPHA: F = (a_d, a_d, a_d) and f = a_d
+D3D12_BLEND_INV_DEST_ALPHA: F = (1 − a_d, 1 − a_d, 1 − a_d) and f = (1 − a_d)
+D3D12_BLEND_DEST_COLOR: F = (r_d, g_d, b_d)
+D3D12_BLEND_INV_DEST_COLOR: F = (1 − r_d, 1 − g_d, 1 − b_d)
+D3D12_BLEND_SRC_ALPHA_SAT: F = (a′_s, a′_s, a′_s) and f = a′_s
+
+3.混合状态
+typedef struct D3D12_BLEND_DESC { 
+	BOOL AlphaToCoverageEnable;  // 默认: False，是否开启alpha-to-coverage
+	BOOL IndependentBlendEnable;  // 默认: False，独立混合
+	D3D11_RENDER_TARGET_BLEND_DESC RenderTarget[8]; // 
+} D3D11_BLEND_DESC;
+
+typedef struct D3D12_RENDER_TARGET_BLEND_DESC{  
+	BOOL BlendEnable; // Default: False，是否开启混合，不能和LogicOpEnable同时为真
+	BOOL LogicOpEnable; // Default: False，是否开启逻辑混合操作
+	D3D12_BLEND SrcBlend; // Default: D3D12_BLEND_ONE，F_src
+	D3D12_BLEND DestBlend; // Default: D3D12_BLEND_ZERO，F_dst 
+	D3D12_BLEND_OP BlendOp; // Default：D3D12_BLEND_OP_ADD，op2
+	D3D12_BLEND SrcBlendAlpha; // Default：D3D12_BLEND_ONE，f_src
+	D3D12_BLEND DestBlendAlpha; // Default：D3D12_BLEND_ZERO，f_dst 
+    D3D12_BLEND_OP BlendOpAlpha; // Default：D3D12_BLEND_OP_ADD，op2
+	D3D12_LOGIC_OP LogicOp;   // Default：D3D12_LOGIC_OP_NOOP，逻辑操作
+	UINT8 RenderTargetWriteMask; // Default：D3D12_COLOR_WRITE_ENABLE_ALL，
+} D3D12_RENDER_TARGET_BLEND_DESC;
+
+写掩码控制哪一个颜色通道可以写数据
+typedef enum D3D12_COLOR_WRITE_ENABLE { 
+	D3D12_COLOR_WRITE_ENABLE_RED   = 1, 
+	D3D12_COLOR_WRITE_ENABLE_GREEN  = 2, 
+	D3D12_COLOR_WRITE_ENABLE_BLUE  = 4, 
+	D3D12_COLOR_WRITE_ENABLE_ALPHA  = 8, 
+	D3D12_COLOR_WRITE_ENABLE_ALL   = (  D3D12_COLOR_WRITE_ENABLE_RED |
+										D3D12_COLOR_WRITE_ENABLE_GREEN |     
+										D3D12_COLOR_WRITE_ENABLE_BLUE |
+										D3D12_COLOR_WRITE_ENABLE_ALPHA ) 
+} D3D12_COLOR_WRITE_ENABLE;
+
+注意绘制顺序：
+首先绘制不适用混合的物体，然后由远至近绘制使用混合的物体
+
+4.修剪像素
+clip(x)
+
+由于过滤，alpha通道可能会有偏差，因此在修剪像素时要预留一点缓冲空间
+例如，修剪alpha接近0的像素，而不必是alpha精确是0的像素
+
+5.雾
+foggedColor = litColor + s(fogColor-litColor) = (1-s)*litColor + s*fogColor
+s = saturate((dist(p,E) - fogStart)/fogRange)
+
+【模板】
+
+1.深度模板缓冲格式
+DXGI_FORMAT_D32_FLOAT_S8X24_UINT:32位浮点用作深度缓冲，8位无符号整数[0,255]用作模板缓冲
+DXGI_FORMAT_D24_UNORM_S8_UINT:24位[0,1]用作深度缓冲，8位无符号整数[0,255]用作模板缓冲
+
+在每一帧开始时都要重置模板缓冲：
+voidID3D12GraphicsCommandList::ClearDepthStencilView(   
+	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView,  // 深度模板缓冲的描述符
+	D3D12_CLEAR_FLAGS ClearFlags,  // 清空哪一个缓冲
+	FLOAT Depth,  // 用来清空深度缓冲的值，[0,1]
+	UINT8 Stencil,  // 用来清空模板缓冲的值，[0,255]
+	UINT NumRects,  // pRects中的矩形数量
+	const D3D12_RECT *pRects  // 目标清空区域，nullptr清空全部区域
+);
+
+2.模板测试
+if( StencilRef & StencilReadMask  op  Value & StencilReadMask )   
+	accept pixel  
+else    
+	reject pixel
+
+op定义如下：
+typedef enum D3D12_COMPARISON_FUNC{  
+	D3D12_COMPARISON_NEVER = 1,  
+	D3D12_COMPARISON_LESS = 2,  
+	D3D12_COMPARISON_EQUAL = 3,  
+	D3D12_COMPARISON_LESS_EQUAL = 4,  
+	D3D12_COMPARISON_GREATER = 5,  
+	D3D12_COMPARISON_NOT_EQUAL = 6,  
+	D3D12_COMPARISON_GREATER_EQUAL = 7,  
+	D3D12_COMPARISON_ALWAYS = 8,
+} D3D12_COMPARISON_FUNC;
+
+3.深度模板状态
+typedef struct D3D12_DEPTH_STENCIL_DESC {  
+	BOOL DepthEnable; // 默认 True，是否开启深度缓冲
+	D3D12_DEPTH_WRITE_MASK DepthWriteMask;  // 默认: D3D11_DEPTH_WRITE_MASK_ALL ，写掩码
+	D3D12_COMPARISON_FUNC DepthFunc;  // 默认: D3D11_COMPARISON_LESS
+	BOOL StencilEnable;        // 默认: False  ，是否开启模板测试
+	UINT8 StencilReadMask;     // 默认: 0xff  ，读掩码
+	UINT8 StencilWriteMask;    // 默认: 0xff  ，写掩码
+	D3D12_DEPTH_STENCILOP_DESC FrontFace;  // 设置模板缓冲在正面三角型上如何工作
+	D3D12_DEPTH_STENCILOP_DESC BackFace;   // 设置模板缓冲在背面三角型上如何工作
+} D3D12_DEPTH_STENCIL_DESC;
+
+typedef struct D3D12_DEPTH_STENCILOP_DESC { 
+	D3D12_STENCIL_OP StencilFailOp;      // Default: D3D12_STENCIL_OP_KEEP，指定模板测试失败时如何更新模板缓冲
+	D3D12_STENCIL_OP StencilDepthFailOp; // Default: D3D12_STENCIL_OP_KEEP，指定模板测试成功，但深度测试失败时如何更新模板缓冲
+	D3D12_STENCIL_OP StencilPassOp;    // Default: D3D12_STENCIL_OP_KEEP，指定模板测试成功，深度测试成功时如何更新模板缓冲
+	D3D12_COMPARISON_FUNC StencilFunc; // Default: D3D12_COMPARISON_ALWAYS
+} D3D12_DEPTH_STENCILOP_DESC;
+
+typedef enum D3D12_STENCIL_OP{  
+	D3D12_STENCIL_OP_KEEP   = 1,  // 保留当前值
+	D3D12_STENCIL_OP_ZERO   = 2,  // 置0
+	D3D12_STENCIL_OP_REPLACE   = 3,  // 置StencilRef的值
+	D3D12_STENCIL_OP_INCR_SAT   = 4,  // 增加，超过最大值时截断至最大值
+	D3D12_STENCIL_OP_DECR_SAT   = 5,  // 减少，小于0时截断至0
+	D3D12_STENCIL_OP_INVERT   = 6,  // 倒转比特位
+	D3D12_STENCIL_OP_INCR   = 7,  // 增加，超过最大值时置0
+	D3D12_STENCIL_OP_DECR   = 8  // 减少，小于0时置最大值
+} D3D12_STENCIL_OP;
+
+使用ID3D12GraphicsCommandList::OMSetStencilRef设置StencilRef的值
+
+4.平面镜像
+
+绘制镜像时，同时需要将光源反射，否则镜像的光照有错误
+
+主要步骤：
+绘制其他物体（镜子除外）；
+将模板缓冲清空至0；
+仅将镜子渲染至模板缓冲
+	通过D3D12_RENDER_TARGET_BLEND_DESC::RenderTargetWriteMask = 0;可阻止向后缓冲写
+	通过D3D12_DEPTH_STENCIL_DESC::DepthWriteMask =D3D12_DEPTH_WRITE_MASK_ZERO;可阻止向深度缓冲写
+	设定模板测试总是成功D3D12_COMPARISON_ALWAYS
+	模板测试成功时用1（StencilRef）来代替（D3D12_STENCIL_OP_REPLACE）原来的值
+	如果深度测试失败，指定D3D12_STENCIL_OP_KEEP来保留原来的模板缓冲值
+	最终，镜子的可见部分的模板缓冲值为1，其他均为0
+绘制镜像物体
+	只有模板测试通过才绘制
+	只有模板缓冲值等于（D3D12_COMPARISON_EQUAL）1（StencilRef），模板测试才成功
+绘制镜子
+	利用混合实现透明效果
+
+5.绕序
+当三角形通过镜子反射后，其绕序并不颠倒，导致外向三角形变为内向三角形
+通过设置drawReflectionsPsoDesc.RasterizerState.FrontCounterClockwise = true;解决
+
+6.平面阴影
+inline XMMATRIX XM_CALLCONV XMMatrixShadow(  
+FXMVECTOR ShadowPlane,   
+FXMVECTOR LightPosition);
+w=0表示平行光，w=1表示点光
+
+双重混合：绘制阴影时，多个三角形重合导致重合部分颜色加深
+可以使用模板缓冲解决
+	先将要绘制阴影的区域的模板缓冲置0
+	模板测试只接受原先模板缓冲值为0的像素。如果测试通过，将模板缓冲值置1
+
+将阴影稍稍上移，避免与被投影平面重叠，造成闪烁
+
+7.深度复杂度
+
+【几何着色器】
+
+1.几何着色器位于顶点着色器和像素着色器之间，以完整的原型为输入
+离开几何着色器的顶点的位置必须已经被转换到齐次剪裁空间
+
+2.几何着色器编程
+[maxvertexcount(N)]
+void ShaderName (  
+	PrimitiveType InputVertexType InputName[NumElements],  
+	inout StreamOutputObject<OutputVertexType>OutputName)
+{   
+	// 函数体
+}
+
+必须指定单次调用下几何着色器输出的顶点的最大数量
+
+PrimitiveType ：
+point
+line
+triangle
+lineadj
+triangleadj
+
+输出参数必须有inout修饰符
+输出参数一定是一个stream类型，stream类型存储顶点列表，这些顶点构成了输出的几何体
+
+通过Append方法向输出stream添加顶点
+void StreamOutputObject<OutputVertexType>::Append(OutputVertexType v);
+
+有三种stream类型：
+PointStream<OutputVertexType>：顶点列表，定义一个点的列表
+LineStream<OutputVertexType>：顶点列表，定义线带
+TriangleStream<OutputVertexType>：顶点列表，定义三角形带
+
+可以使用RestartStrip来模拟线列表和三角形列表
+void StreamOutputObject<OutputVertexType>::RestartStrip();
+
+如果几何着色器输出的点不足以构成一个完整的原型，则该不完整原型被丢弃
+
+3.广告牌算法
+uint primID : SV_PrimitiveID
+单次绘制调用中赋予每个原型的唯一的id
+如果没有几何着色器，原型id可以加在像素着色器的参数列表中
+但是，如果有几何着色器，则原型id必须出现在几何着色器的函数签名中
+也可以为每个顶点赋予一个id，通过在顶点着色器的签名中增加SV_VertexID语义
+
+4.纹理数组
+需要指定DepthOrArraySize
+
+5.纹理子资源
+array slice
+mip slice
+
+6.alpha-to-coverage
+广告牌算法会产生硬边现象
+
+【计算着色器】
+
+1.线程和线程组
+在GPU编程中，等待执行的线程被分配到线程组的网格中
+一个线程组在一个多处理器上执行
+每个线程组有共享内存，该组中的所有线程都可以使用
+一个组的线程不能够使用另一个组的共享内存
+同步操作只发生在同一个组的线程之中，不同组的执行顺序是不定的
+一个线程组包含多个线程，硬件以warp为单位划分这些线程
+每个warp包含32个线程，通过SIMD32处理（32个线程同时执行同一条指令）
+每个CUDA核处理一个线程
+处于性能考虑，线程组的大小应该是warp大小的整数倍
+NVIDIA的warp包含32个线程，ATI使用包含64个线程的wavefront
+
+线程组通过Dispatch发起
+void ID3D12GraphicsCommandList::Dispatch(
+	UINT ThreadGroupCountX, 
+	UINT ThreadGroupCountY, 
+	INT ThreadGroupCountZ
+);
+
+通过[numthreads(X, Y, Z)]指定线程组的拓扑
+
+2.计算PSO
+开启计算着色器需要计算管线状态对象
+
+3.数据输入和输出资源
+缓冲和纹理都可以绑定到计算着色器
+
+纹理输入：通过创建SRV将纹理绑定至输入
+
+纹理输出和无序存取视图：
+RWTexture2D<float4> gOutput;
+输出必须要有前缀RW，表示读写
+需要指定输出的类型和维度，如<float4>
+如果输出DXGI_FORMAT_R8G8_SINT类型的2D整数，使用<int2>
+
+绑定输入需要使用UAV，D3D12_UNORDERED_ACCESS_VIEW_DESC
+
+4.索引和采样纹理
+纹理中的元素可以使用2D索引来定位
+可以基于分发线程ID来索引纹理：gInputA[dispatchThreadID.xy]
+越界的索引在计算着色器中定义良好。越界读返回0，越界写导致无操作
+
+也可以使用纹理过滤来采样纹理
+采样方法必须使用SampleLevel，该方法需要额外的参数来指定纹理映射等级
+0表示最高等级，1其次，以此类推，分数值指定两个纹理映射等级之间的线性插值
+另外，该方法需要[0,1]之间的单位化纹理坐标，而非整数索引
+
+5.结构化缓冲资源
+struct Data{   
+	float3 v1;   
+	float2 v2;
+};
+StructuredBuffer<Data> gInputA : register(t0);
+StructuredBuffer<Data> gInputB : register(t1);
+RWStructuredBuffer<Data> gOutput : register(u0);
+
+结构化缓冲是相同类型的元素的缓冲
+结构化缓冲绑定到管线的方式与纹理一样
+
+6.将计算着色器的结果拷贝至系统内存
+使用堆属性D3D12_HEAP_TYPE_READBACK创建系统内存缓冲
+使用ID3D12GraphicsCommandList::CopyResource将GPU资源拷贝至系统内存资源
+映射系统内存资源，拷贝数据至系统内存数组
+
+7.线程标识系统值
+
+每个线程组有一个组ID，语义为SV_GroupID
+如果分发了G_x × G_y × G_z个线程组，则组ID的范围是(0, 0, 0)到(G_x – 1, G_y – 1,G_z – 1)
+
+在每个线程组中，每个线程有一个在组内唯一的ID，组线程ID，语义是SV_GroupThreadID
+如果组有X × Y × Z个线程，则组线程ID的范围是(0, 0, 0)到(X  –  1, Y  –  1, Z  –  1)
+
+在一次分发调用中，每个线程有一个唯一的ID，分发线程ID，语义SV_DispatchThreadID
+令ThreadGroupSize  =  (X,Y,Z)为线程组的大小，有：
+dispatchThreadID.xyz =  groupID.xyz * ThreadGroupSize.xyz + groupThreadID.xyz;
+
+组索引，语义SV_GroupIndex
+groupIndex = groupThreadID.z * ThreadGroupSize.x * ThreadGroupSize.y +             
+			 groupThreadID.y * ThreadGroupSize.x + groupThreadID.x;
+
+8.添加和消耗缓冲
+元素添加和消耗的顺序不定
+输入缓冲中的第i个元素不一定会写入到输出缓冲中的第i个元素
+添加结构化缓冲不会动态增长，必须足够大，以容纳所添加的所有数据
+
+9.着色器内存和同步
+声明共享内存样例：
+groupshared float4 gCache[256];
+
+共享内存最大为32kb
+
+等待组中的所有线程完成：GroupMemoryBarrierWithGroupSync();
+
+10.模糊
+
+高斯模糊是分离式的，可分解为两个一维的模糊
+
+渲染到纹理
+
+模糊算法概述：
+需要两个用来读写的纹理（纹理A和纹理B），每个纹理需要SRV和UAV
+a.用SRV把A绑定到计算着色器的输入
+b.用UAV把B绑定到计算着色器的输出
+c.分发线程组来进行水平模糊计算，之后，纹理B将存储水平模糊结果
+d.用SRV把B绑定到计算着色器的输入
+e.用UAV把A绑定到计算着色器的输出
+f.分发线程组来进行垂直模糊计算，之后，纹理A将存储最终模糊结果
+
+【曲面细分】
+
+1.使用曲面细分时，我们不向IA（顶点装配阶段）提交三角形
+我们提交包含控制点的patch
+D3D支持一个patch包含1-32个控制点
+
+一个三角形可以看作是包含3个控制点的patch（D3D_PRIMITIVE_3_CONTROL_POINT_PATCH）
+一个四边形可以看作是包含4个控制点的patch（D3D_PRIMITIVE_4_CONTROL_POINT_PATCH）
+这些patch最终会被曲面细分成三角形
+
+2.外壳着色器
+包含恒定外壳着色器和控制点外壳着色器
+
+恒定外壳着色器作用于每个patch上，输出曲面细分参数，如：
+struct PatchTess{  
+	float EdgeTess[4]  : SV_TessFactor;  
+	float InsideTess[2] : SV_InsideTessFactor;
+	// 其他信息
+};
+
+PatchTess ConstantHS(InputPatch<VertexOut, 4> patch,           
+					 uint patchID : SV_PrimitiveID)
+{  
+	PatchTess pt;  
+	// 均匀细分三次
+	pt.EdgeTess[0] = 3; // Left edge  
+	pt.EdgeTess[1] = 3; // Top edge  
+	pt.EdgeTess[2] = 3; // Right edge  
+	pt.EdgeTess[3] = 3; // Bottom edge  
+	pt.InsideTess[0] = 3; // u-axis (columns)  
+	pt.InsideTess[1] = 3; // v-axis (rows)  
+	return pt;
+}
+
+恒定外壳着色器的输入时patch的所有控制点
+SV_PrimitiveID给patch赋予一个单次绘制调用中唯一的ID
+
+D3D11硬件支持的最大细分参数是64
+如果所有的参数都是0，则该patch被抛弃，这允许实施基于patch的平截头剔除和背面剔除
+
+如何决定细分参数：
+距离摄像头的距离
+屏幕区域覆盖范围
+方位
+粗糙度
+
+性能建议：
+如果细分参数是1（等价于不细分），则不要使用曲面细分
+如果三角形覆盖的像素少于8个，不要细分
+打包使用曲面细分的绘制调用，因为打开和关闭曲面细分代价昂贵
+
+控制点外壳着色器输入一系列控制点，输出一系列控制点
+每个输出控制点调用一次
+
+struct HullOut{  
+	float3 PosL : POSITION;
+};
+
+[domain(“quad”)]
+[partitioning(“integer”)]
+[outputtopology(“triangle_cw”)]
+[outputcontrolpoints(4)]
+[patchconstantfunc(“ConstantHS”)]
+[maxtessfactor(64.0f)]
+HullOut HS( InputPatch<VertexOut, 4> p,       
+			uint i : SV_OutputControlPointID,      
+			uint patchId : SV_PrimitiveID)
+{  
+	HullOut hout;  
+	hout.PosL = p[i].PosL;  
+	return hout;
+}
+
+domain：patch类型，合法的参数是tri，quad，isoline
+partitioning：细分模式，整数还是分数
+outputtopology：通过细分产生的三角形的绕序
+outputcontrolpoints：外壳着色器执行的次数，一次输出一个控制点，SV_OutputControlPointID给出输出控制点的索引
+patchconstantfunc：指定恒定外壳着色器的函数名
+maxtessfactor：最大细分系数，D3D11硬件支持的最大细分参数是64
+
+3.曲面细分阶段
+由硬件执行
+
+4.域着色器
+域着色器每个顶点调用一次
+在域着色器中将顶点映射至齐次剪裁空间
+
+域着色器的输入是：
+来自恒定外壳着色器的细分参数（以及其他可能的信息）
+细分顶点的参数坐标（如果是三角形patch，则为重心坐标）
+来自控制点外壳着色器的所有控制点
+
+struct DomainOut{  
+	float4 PosH : SV_POSITION;
+};
+
+[domain(“quad”)]
+DomainOut DS(PatchTess patchTess,        
+			 float2 uv : SV_DomainLocation,        
+			 const OutputPatch<HullOut, 4> quad)
+{  
+	DomainOut dout;
+	// 双重线性插值
+	float3 v1 = lerp(quad[0].PosL, quad[1].PosL, uv.x);   
+	float3 v2 = lerp(quad[2].PosL, quad[3].PosL, uv.x);   
+	float3 p = lerp(v1, v2, uv.y);   
+	float4 posW = mul(float4(p, 1.0f), gWorld);  
+	dout.PosH = mul(posW, gViewProj);  
+	return dout;
+}
+
+5.贝塞尔曲线
+
+【动态索引】
+
+1.索引可以通过以下几种方式指定：
+常量缓冲中的一个元素
+SV_PrimitiveID，SV_VertexID，SV_DispatchThreadID，SV_InstanceID
+某些计算的结果
+来自于纹理
+来自于顶点结构中的某一部分
+
+2.仅被着色器模型5.1+支持
+数组中的纹理可以有不同的大小和格式
+
+【实例化和平截头剔除】
+
+1.使用结构化缓冲来存储实例的数据
+使用SV_InstanceID来索引实例
+
+2.轴对称包围盒（axis-aligned bounding box，AABB）
+可以使用v_min和v_max表示
+也可以使用盒中心c和拓展向量e表示，DirectX使用该表达方式
+struct BoundingBox{  
+	static const size_t CORNER_COUNT = 8;  
+	XMFLOAT3 Center;      // 盒中心
+	XMFLOAT3 Extents;     // 拓展向量
+	...
+}
+
+AABB转换到世界坐标后可能变为方向包围盒（oriented bounding box，OBB）
+struct BoundingOrientedBox{  
+	static const size_t CORNER_COUNT = 8;  
+	XMFLOAT3 Center;         // 盒中心 
+	XMFLOAT3 Extents;        // 拓展向量
+	XMFLOAT4 Orientation;    // 单位四元数，代表旋转（盒子->世界）
+	...
+}
+
+根据点集构造AABB和OBB
+void BoundingBox::CreateFromPoints(   
+	_Out_ BoundingBox& Out,   
+	_In_ size_t Count,  
+	_In_reads_bytes_(sizeof(XMFLOAT3)+Stride*(Count-1)) const XMFLOAT3* pPoints,   
+	_In_ size_t Stride 
+);
+
+void BoundingOrientedBox::CreateFromPoints(   
+	_Out_ BoundingOrientedBox& Out,   
+	_In_ size_t Count,  
+	_In_reads_bytes_(sizeof(XMFLOAT3)+Stride*(Count-1)) const XMFLOAT3* pPoints, 
+	_In_ size_t Stride 
+);
+
+样例：
+struct Basic32{  
+	XMFLOAT3 Pos;  
+	XMFLOAT3 Normal;  
+	XMFLOAT2 TexC;
+};
+std::vector<Vertex::Basic32> vertices;
+BoundingBox box;
+BoundingBox::CreateFromPoints(  
+	box,   
+	vertices.size(),   
+	&vertices[0].Pos,   
+	sizeof(Vertex::Basic32)
+);
+
+3.包围球
+struct BoundingSphere{  
+	XMFLOAT3 Center;      // 球心
+	float Radius;        // 球半径
+	...
+}
+
+根据点集构造包围球
+void BoundingSphere::CreateFromPoints(   
+	_Out_ BoundingSphere& Out,   
+	_In_ size_t Count,  
+	_In_reads_bytes_(sizeof(XMFLOAT3)+Stride*(Count-1)) const XMFLOAT3* pPoints,  
+	_In_ size_t Stride 
+);
+
+4.平截头
+可以使用6个平面的交来指定一个平截头
+假定这6个平面朝向内部
+
+DirectX中平截头的表示
+struct BoundingFrustum{  
+	static const size_t CORNER_COUNT = 8;  
+	XMFLOAT3 Origin;         // 平截头的原点
+	XMFLOAT4 Orientation;    // 方位
+	float RightSlope;        // 正X斜率 (X/Z).  
+	float LeftSlope;         // 负X斜率 
+	float TopSlope;          // 正Y斜率 (Y/Z).  
+	float BottomSlope;       // 负Y斜率
+	float Near, Far;         // 远近平面的Z值
+	...
+}
+
+从投影矩阵计算平截头
+inline void XM_CALLCONVBoundingFrustum::CreateFromMatrix(   
+	BoundingFrustum& Out,   
+	FXMMATRIX Projection 
+)
+
+5.平截头和包围球的相交性检测
+如果存在一个平截头平面L，使得包围球在L的负半平面，则不相交，否则相交
+
+检测函数
+enum ContainmentType{  
+DISJOINT = 0,  // 在平截头外
+INTERSECTS = 1,  // 与平截头边缘相交
+CONTAINS = 2,  // 在平截头内部
+};
+
+ContainmentType BoundingFrustum::Contains(_In_ const BoundingSphere& sphere ) const;
+ContainmentType BoundingSphere::Contains(_In_ const BoundingFrustum& fr ) const;
+
+6.平截头和包围盒（AABB）的相交性检测
+
+检测函数
+ContainmentType BoundingFrustum::Contains(_In_ const BoundingBox& box ) const;
+ContainmentType BoundingBox::Contains(_In_ const BoundingFrustum& fr ) const;
+
+【选取】
+
+1.步骤
+将屏幕点转换至标准设备坐标
+将标准设备坐标转换至视空间坐标，计算视空间的选取射线
+将射线的视空间坐标转换至世界空间坐标，再转换至物体局部空间坐标，最后做相交性测试
+
+如果将物体转换至世界空间再做相交性测试的话，会有性能问题
+因为物体通常包含大量的顶点
+
+2.射线与网格的相交性检测
+先检测与包围盒的相交性
+
+射线与AABB的相交性检测
+bool XM_CALLCONV BoundingBox::Intersects(   
+	FXMVECTOR Origin,   // 射线原点
+	FXMVECTOR Direction, // 射线方向（必须是单位向量）
+	float& Dist  // 射线相交参数
+); const 
+
+射线与球的相交性检测
+bool XM_CALLCONV
+BoundingSphere::Intersects(   
+	FXMVECTOR Origin,   
+	FXMVECTOR Direction,   
+	float& Dist 
+); const
+
+射线与三角形的相交性检测
+bool XM_CALLCONV TriangleTests::Intersects(
+	FXMVECTOR Origin,  // 射线原点
+	FXMVECTOR Direction, // 射线方向（必须是单位向量）
+	FXMVECTOR V0, // 顶点v0
+	GXMVECTOR V1, // 顶点v1  
+	HXMVECTOR V2, // 顶点v2  
+	float& Dist   // 射线相交参数
+);
+
+【立方体贴图】
+
+1.用来绘制天空球
+建议最后绘制天空
+
+2.镜面反射
+使用环境贴图
+在扁平的表面上使用环境贴图来近似镜面反射会有问题
+因为只使用了反射向量的方向，没有包含位置
+一种解决方法是使用代理几何体计算正确的采样点
+（实际测试发现镜面反射的颜色会变暗一点，原因不明）
+
+3.动态立方体贴图
+代价高昂，尽量少用
+通常使用分辨率比较低的立方体贴图
+暂时不推荐使用几何着色器（使用SV_RenderTargetArrayIndex系统值）实现
+
+【法向量贴图】
+
+1.通常存储压缩的坐标（节省内存）
+法向量贴图通常显蓝色
+推荐使用DXGI_FORMAT_BC7_UNORM格式
+
+2.纹理空间，又叫切线空间
+使用TBN坐标轴
+
+3.主要步骤：
+使用艺术程序或者功能程序创建需要的法向量贴图。在程序初始化阶段创建相应的纹理
+对每个三角形，计算切向量T。通过平均法计算每个顶点的切向量
+在顶点着色器，将顶点法向量和切向量转换至世界坐标
+使用插值的法向量和切向量构造像素级的TBN坐标，使用该坐标将采样的法向量转换至世界空间
+
+4.法向量贴图的alpha通道存储亮度掩码，可用来控制像素级别的亮度
+
+5.高度贴图heightmap，见练习
+
+【阴影贴图】
+
+1.阴影贴图算法依赖于从光源的视角渲染场景深度
+
+2.正交投影
+透视投影转换分成两部分，线性部分是投影矩阵，非线性部分是除以w
+正交投影转换时完全线性的，不需要除以w。乘以正交投影矩阵直接转换至NDC坐标
+
+3.投影纹理坐标
+先将点投影至光源的投影窗口，并将坐标转换至NDC空间
+再将坐标从NDC空间转换至纹理空间
+
+透视除可以放在纹理转换的后面
+
+在产生投影纹理坐标时，没有剪裁操作，因此，平截头外的几何体会获得[0,1]范围之外的纹理坐标
+与纹理的地址模式有关
+两种解决办法：
+一种是使用边界颜色地址模式，指定零颜色
+另一种是关联一个聚光
+
+也可使用正交投影产生投影纹理坐标
+关联聚光的方法不再适用
+边界颜色地址模式的方法仍然适用
+不需要除以w
+
+4.阴影贴图算法
+平截头光量可用来模拟聚光
+盒光量可用来模拟平行光（光量要足够大，以覆盖整个场景）
+
+深度值比较使用NDC坐标
+
+5.偏移和混淆
+由于阴影贴图的分辨率有限，会产生阴影疮
+使用一个偏移可以解决该问题
+过大的偏移会造成彼得潘现象（阴影与物体分离）
+由于三角形相对于光源的倾斜度不同，固定的偏移无法满足所有的要求
+
+倾斜度越大，偏移应该越大
+图形硬件有相应的内部支持
+typedef struct D3D12_RASTERIZER_DESC { 
+	[...] 
+	INT        DepthBias; // 固定偏移
+	FLOAT      DepthBiasClamp; // 最大深度偏移
+	FLOAT      SlopeScaledDepthBias; // 比例系数，控制倾斜度如何影响偏移量
+	[...]
+}D3D12_RASTERIZER_DESC;
+
+深度偏移发生在光栅化期间（剪裁之后），因此不影响几何体剪裁
+
+6.PCF过滤
+投影纹理坐标通常不会正好落在阴影贴图的图元上
+使用PCF（percentage closer filtering）：
+采样纹理坐标周围最近的4个纹理（使用点过滤），然后对深度测试的结果进行双线性插值
+插值的结果使得一个像素可以部分在阴影中，形成从阴影到非阴影的平滑过渡
+
+PCF过滤的主要缺点是需要采样纹理4次，而采样纹理操作在现代GPU上十分昂贵
+D3D11+对PCF提供了内部支持：SampleCmpLevelZero
+
+仅下述格式支持比较过滤器：
+R32_FLOAT_X8X24_TYPELESS
+R32_FLOAT
+R24_UNORM_X8_TYPELESS
+R16_UNORM
+
+【环境光遮挡】
+
+1.八叉树是一种经典的空间数据结构，可以加速射线与三角形的相交性检测
+
+2.预先计算的环境观遮挡只适用于静态物体
+通过运行时射线投射的方法来实现动态环境光遮挡不可行
+SSAO（屏幕空间环境观遮挡）是一种可行的解决办法
+
+3.基本算法
+每一帧，将场景视空间法向量渲染至一个完整的屏幕渲染目标
+将场景深度渲染至通常的深度模板缓冲
+使用视空间法向量渲染目标和深度模板缓冲来估计每个像素的环境光遮挡
+使用SSAO信息来调整每个像素的环境光项，像通常一样渲染至后缓冲
+使用模糊算法来缓解噪音问题
+
+【四元数】
+略
+
+【动画】
+略
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
