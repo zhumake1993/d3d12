@@ -120,7 +120,7 @@ float4 PS(VertexOut pin) : SV_Target
 	float3 p = (pz/pin.PosV.z)*pin.PosV;
 	
 	// 采样随即向量并映射[0,1] --> [-1, +1].
-	float3 randVec = 2.0f*gRandomVecMap.SampleLevel(gsamLinearWrap, 4.0f*pin.TexC, 0.0f).rgb - 1.0f;
+	float3 randVec = 2.0f * gRandomVecMap.SampleLevel(gsamLinearWrap, 4.0f * pin.TexC, 0.0f).rgb - 1.0f;
 
 	float occlusionSum = 0.0f;
 	

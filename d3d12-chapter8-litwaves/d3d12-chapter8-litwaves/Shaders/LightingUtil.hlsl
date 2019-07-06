@@ -17,6 +17,34 @@ struct Material
     float Shininess;
 };
 
+float fkd(float kd)
+{
+	float3 result = 0.0f;
+
+	if (kd < 0.0f)
+		result = 0.4f;
+	else if (kd < 0.5f)
+		result = 0.6f;
+	else
+		result = 1.0f;
+
+	return result;
+}
+
+float gks(float ks)
+{
+	float3 result = 0.0f;
+
+	if (ks < 0.1f)
+		result = 0.0f;
+	else if (ks < 0.8f)
+		result = 0.5f;
+	else
+		result = 1.0f;
+
+	return result;
+}
+
 float CalcAttenuation(float d, float falloffStart, float falloffEnd)
 {
     // 线性衰减
@@ -41,6 +69,7 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
     float3 halfVec = normalize(toEye + lightVec);
 
     float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
+	//roughnessFactor = gks(roughnessFactor);
     float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
 
     float3 specAlbedo = fresnelFactor*roughnessFactor;
@@ -61,6 +90,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 
     // 兰伯特余弦定理
     float ndotl = max(dot(lightVec, normal), 0.0f);
+	//ndotl = fkd(ndotl);
     float3 lightStrength = L.Strength * ndotl;
 
     return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
@@ -92,7 +122,7 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 }
 
 //---------------------------------------------------------------------------------------
-// 计算镜面光
+// 计算聚光
 //---------------------------------------------------------------------------------------
 float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
 {

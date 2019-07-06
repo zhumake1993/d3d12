@@ -1,2 +1,11 @@
-﻿  NormalMapApp.cpp
+﻿  Camera.cpp
+  D3DApp.cpp
+  d3dUtil.cpp
+  DDSTextureLoader.cpp
+  GameTimer.cpp
+  GeometryGenerator.cpp
+  MathHelper.cpp
+  NormalMapApp.cpp
+  TheMain.cpp
+  正在生成代码...
   d3d12-chapter19-NormalMap.vcxproj -> F:\d3d12\d3d12-chapter19-NormalMap\x64\Debug\d3d12-chapter19-NormalMap.exe

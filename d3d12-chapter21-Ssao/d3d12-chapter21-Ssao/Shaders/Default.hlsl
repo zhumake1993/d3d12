@@ -79,6 +79,7 @@ float4 PS(VertexOut pin) : SV_Target
 
 	// 完成纹理投影并采样ssao贴图
 	pin.SsaoPosH /= pin.SsaoPosH.w;
+
 	float ambientAccess = gSsaoMap.Sample(gsamLinearClamp, pin.SsaoPosH.xy, 0.0f).r;
 
 	// 环境光

@@ -1,2 +1,12 @@
-﻿  QuaternionApp.cpp
+﻿  AnimationHelper.cpp
+  Camera.cpp
+  D3DApp.cpp
+  d3dUtil.cpp
+  DDSTextureLoader.cpp
+  GameTimer.cpp
+  GeometryGenerator.cpp
+  MathHelper.cpp
+  QuaternionApp.cpp
+  TheMain.cpp
+  正在生成代码...
   d3d12-chapter22-Quaternion.vcxproj -> F:\d3d12\d3d12-chapter22-Quaternion\x64\Debug\d3d12-chapter22-Quaternion.exe

@@ -12,6 +12,7 @@ using namespace DirectX;
 struct Data
 {
 	XMFLOAT3 v1;
+	//float cbPerObjectPad1 = 0.0f;
 	XMFLOAT2 v2;
 };
 

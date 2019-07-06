@@ -1,4 +1,10 @@
 ﻿  BasicTessellationApp.cpp
+  D3DApp.cpp
+  d3dUtil.cpp
+  DDSTextureLoader.cpp
+  GameTimer.cpp
+  GeometryGenerator.cpp
+  MathHelper.cpp
   TheMain.cpp
   正在生成代码...
-  d3d12-chapter13-basictessellation.vcxproj -> F:\d3d12\d3d12-chapter13-basictessellation\x64\Debug\d3d12-chapter13-basictessellation.exe
+  d3d12-chapter13-basictessellation.vcxproj -> F:\d3d12\d3d12-chapter14-basictessellation\x64\Debug\d3d12-chapter13-basictessellation.exe
